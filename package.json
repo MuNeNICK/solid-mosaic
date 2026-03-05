@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "A SolidJS Tiling Window Manager",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MuNeNICK/solid-mosaic"
+  },
   "main": "lib/index.js",
   "style": "solid-mosaic-component.css",
   "type": "commonjs",
