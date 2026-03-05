@@ -1,32 +1,26 @@
 import classNames from 'classnames';
-import React from 'react';
-import { MosaicContext } from '../contextTypes';
-
+import { JSX } from 'solid-js';
+import { useMosaicContext } from '../contextTypes';
 import { OptionalBlueprint } from '../util/OptionalBlueprint';
 
-export const DefaultToolbarButton = ({
-  title,
-  className,
-  onClick,
-  text,
-}: {
+export const DefaultToolbarButton = (props: {
   title: string;
   className: string;
-  onClick: (event: React.MouseEvent<any>) => any;
+  onClick: (event: MouseEvent) => any;
   text?: string;
 }) => {
-  const { blueprintNamespace } = React.useContext(MosaicContext);
+  const ctx = useMosaicContext();
   return (
     <button
-      title={title}
-      onClick={onClick}
-      className={classNames(
+      title={props.title}
+      onClick={props.onClick}
+      class={classNames(
         'mosaic-default-control',
-        OptionalBlueprint.getClasses(blueprintNamespace, 'BUTTON', 'MINIMAL'),
-        className,
+        OptionalBlueprint.getClasses(ctx.blueprintNamespace, 'BUTTON', 'MINIMAL'),
+        props.className,
       )}
     >
-      {text && <span className="control-text">{text}</span>}
+      {props.text && <span class="control-text">{props.text}</span>}
     </button>
   );
 };
@@ -37,9 +31,9 @@ export const DefaultToolbarButton = ({
 export const createDefaultToolbarButton = (
   title: string,
   className: string,
-  onClick: (event: React.MouseEvent<any>) => any,
+  onClick: (event: MouseEvent) => any,
   text?: string,
-) => <DefaultToolbarButton title={title} className={className} onClick={onClick} text={text} />;
+): JSX.Element => <DefaultToolbarButton title={title} className={className} onClick={onClick} text={text} />;
 
 export interface MosaicButtonProps {
   onClick?: () => void;

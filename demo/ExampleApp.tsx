@@ -1,8 +1,5 @@
-import { Classes, HTMLSelect } from '@blueprintjs/core';
-import { IconNames } from '@blueprintjs/icons';
-import classNames from 'classnames';
+import { createSignal } from 'solid-js';
 import dropRight from 'lodash/dropRight';
-import React from 'react';
 
 import {
   Corner,
@@ -21,98 +18,40 @@ import {
   updateTree,
 } from '../src';
 
-import { CloseAdditionalControlsButton } from './CloseAdditionalControlsButton';
+import './styles.less';
 
-import '@blueprintjs/core/lib/css/blueprint.css';
-import '@blueprintjs/icons/lib/css/blueprint-icons.css';
-import '../styles/index.less';
-import './carbon.less';
-import './example.less';
-
-// tslint:disable no-console
-
-// tslint:disable-next-line no-var-requires
-const gitHubLogo = require('./GitHub-Mark-Light-32px.png');
-// tslint:disable-next-line no-var-requires
-const { version } = require('../package.json');
-
-export const THEMES = {
-  ['Blueprint']: 'mosaic-blueprint-theme',
-  ['Blueprint Dark']: classNames('mosaic-blueprint-theme', Classes.DARK),
-  ['None']: '',
-};
-
-export type Theme = keyof typeof THEMES;
-
-const additionalControls = React.Children.toArray([<CloseAdditionalControlsButton />]);
-
-const EMPTY_ARRAY: any[] = [];
-
-export interface ExampleAppState {
-  currentNode: MosaicNode<number> | null;
-  currentTheme: Theme;
-}
-
-export class ExampleApp extends React.PureComponent<{}, ExampleAppState> {
-  state: ExampleAppState = {
-    currentNode: {
-      direction: 'row',
-      first: 1,
-      second: {
-        direction: 'column',
-        first: 2,
-        second: 3,
-      },
-      splitPercentage: 40,
+export function ExampleApp() {
+  const [currentNode, setCurrentNode] = createSignal<MosaicNode<number> | null>({
+    direction: 'row',
+    first: 1,
+    second: {
+      direction: 'column',
+      first: 2,
+      second: 3,
     },
-    currentTheme: 'Blueprint',
-  };
+    splitPercentage: 40,
+  });
 
-  render() {
-    const totalWindowCount = getLeaves(this.state.currentNode).length;
-    return (
-      <React.StrictMode>
-        <div className="react-mosaic-example-app">
-          {this.renderNavBar()}
-          <Mosaic<number>
-            renderTile={(count, path) => (
-              <ExampleWindow count={count} path={path} totalWindowCount={totalWindowCount} />
-            )}
-            zeroStateView={<MosaicZeroState createNode={() => totalWindowCount + 1} />}
-            value={this.state.currentNode}
-            onChange={this.onChange}
-            onRelease={this.onRelease}
-            className={THEMES[this.state.currentTheme]}
-            blueprintNamespace="bp4"
-          />
-        </div>
-      </React.StrictMode>
-    );
+  function onChange(node: MosaicNode<number> | null) {
+    setCurrentNode(node);
   }
 
-  private onChange = (currentNode: MosaicNode<number> | null) => {
-    this.setState({ currentNode });
-  };
+  function onRelease(node: MosaicNode<number> | null) {
+    console.log('Mosaic.onRelease():', node);
+  }
 
-  private onRelease = (currentNode: MosaicNode<number> | null) => {
-    console.log('Mosaic.onRelease():', currentNode);
-  };
+  function autoArrange() {
+    const leaves = getLeaves(currentNode());
+    setCurrentNode(createBalancedTreeFromLeaves(leaves));
+  }
 
-  private autoArrange = () => {
-    const leaves = getLeaves(this.state.currentNode);
-
-    this.setState({
-      currentNode: createBalancedTreeFromLeaves(leaves),
-    });
-  };
-
-  private addToTopRight = () => {
-    let { currentNode } = this.state;
-    const totalWindowCount = getLeaves(currentNode).length;
-    if (currentNode) {
-      const path = getPathToCorner(currentNode, Corner.TOP_RIGHT);
-      const parent = getNodeAtPath(currentNode, dropRight(path)) as MosaicParent<number>;
-      const destination = getNodeAtPath(currentNode, path) as MosaicNode<number>;
+  function addToTopRight() {
+    let node = currentNode();
+    const totalWindowCount = getLeaves(node).length;
+    if (node) {
+      const path = getPathToCorner(node, Corner.TOP_RIGHT);
+      const parent = getNodeAtPath(node, dropRight(path)) as MosaicParent<number>;
+      const destination = getNodeAtPath(node, path) as MosaicNode<number>;
       const direction: MosaicDirection = parent ? getOtherDirection(parent.direction) : 'row';
 
       let first: MosaicNode<number>;
@@ -125,7 +64,7 @@ export class ExampleApp extends React.PureComponent<{}, ExampleAppState> {
         second = destination;
       }
 
-      currentNode = updateTree(currentNode, [
+      node = updateTree(node, [
         {
           path,
           spec: {
@@ -138,92 +77,43 @@ export class ExampleApp extends React.PureComponent<{}, ExampleAppState> {
         },
       ]);
     } else {
-      currentNode = totalWindowCount + 1;
+      node = totalWindowCount + 1;
     }
 
-    this.setState({ currentNode });
-  };
-
-  private renderNavBar() {
-    return (
-      <div className={classNames(Classes.NAVBAR, Classes.DARK)}>
-        <div className={Classes.NAVBAR_GROUP}>
-          <div className={Classes.NAVBAR_HEADING}>
-            <a href="https://github.com/nomcopter/react-mosaic">
-              react-mosaic <span className="version">v{version}</span>
-            </a>
-          </div>
-        </div>
-        <div className={classNames(Classes.NAVBAR_GROUP, Classes.BUTTON_GROUP)}>
-          <label className={classNames('theme-selection', Classes.LABEL, Classes.INLINE)}>
-            Theme:
-            <HTMLSelect
-              value={this.state.currentTheme}
-              onChange={(e) => this.setState({ currentTheme: e.currentTarget.value as Theme })}
-            >
-              {React.Children.toArray(Object.keys(THEMES).map((label) => <option>{label}</option>))}
-            </HTMLSelect>
-          </label>
-          <div className="navbar-separator" />
-          <span className="actions-label">Example Actions:</span>
-          <button
-            className={classNames(Classes.BUTTON, Classes.iconClass(IconNames.GRID_VIEW))}
-            onClick={this.autoArrange}
-          >
-            Auto Arrange
-          </button>
-          <button
-            className={classNames(Classes.BUTTON, Classes.iconClass(IconNames.ARROW_TOP_RIGHT))}
-            onClick={this.addToTopRight}
-          >
-            Add Window to Top Right
-          </button>
-          <a className="github-link" href="https://github.com/nomcopter/react-mosaic">
-            <img src={gitHubLogo} />
-          </a>
-        </div>
-      </div>
-    );
+    setCurrentNode(node);
   }
-}
-
-interface ExampleWindowProps {
-  count: number;
-  path: MosaicBranch[];
-  totalWindowCount: number;
-}
-
-const ExampleWindow = ({ count, path, totalWindowCount }: ExampleWindowProps) => {
-  const adContainer = React.useRef<HTMLDivElement>(null);
-  React.useEffect(() => {
-    if (adContainer.current == null) {
-      return;
-    }
-
-    const script = document.createElement('script');
-
-    script.src = '//cdn.carbonads.com/carbon.js?serve=CEAIEK3E&placement=nomcoptergithubio';
-    script.async = true;
-    script.type = 'text/javascript';
-    script.id = '_carbonads_js';
-
-    adContainer.current.appendChild(script);
-  }, []);
 
   return (
-    <MosaicWindow<number>
-      additionalControls={count === 3 ? additionalControls : EMPTY_ARRAY}
-      title={`Window ${count}`}
-      createNode={() => totalWindowCount + 1}
-      path={path}
-      onDragStart={() => console.log('MosaicWindow.onDragStart')}
-      onDragEnd={(type) => console.log('MosaicWindow.onDragEnd', type)}
-      renderToolbar={count === 2 ? () => <div className="toolbar-example">Custom Toolbar</div> : null}
-    >
-      <div className="example-window">
-        <h1>{`Window ${count}`}</h1>
-        {count === 3 && <div className="ad-container" ref={adContainer} />}
+    <div class="solid-mosaic-example-app">
+      <div class="example-navbar">
+        <span class="navbar-heading">solid-mosaic</span>
+        <button onClick={autoArrange}>Auto Arrange</button>
+        <button onClick={addToTopRight}>Add Window to Top Right</button>
       </div>
-    </MosaicWindow>
+      <Mosaic<number>
+        renderTile={(count, path) => {
+          const totalWindowCount = getLeaves(currentNode()).length;
+          return (
+            <MosaicWindow<number>
+              title={`Window ${count}`}
+              createNode={() => totalWindowCount + 1}
+              path={path}
+              onDragStart={() => console.log('MosaicWindow.onDragStart')}
+              onDragEnd={(type) => console.log('MosaicWindow.onDragEnd', type)}
+            >
+              <div class="example-window">
+                <h1>{`Window ${count}`}</h1>
+              </div>
+            </MosaicWindow>
+          );
+        }}
+        zeroStateView={<MosaicZeroState createNode={() => getLeaves(currentNode()).length + 1} />}
+        value={currentNode()}
+        onChange={onChange}
+        onRelease={onRelease}
+        className="mosaic-blueprint-theme"
+        blueprintNamespace="bp4"
+      />
+    </div>
   );
-};
+}

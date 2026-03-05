@@ -1,38 +1,20 @@
-import classNames from 'classnames';
-import React from 'react';
-
-import { MosaicContext, MosaicRootActions, MosaicWindowContext } from '../contextTypes';
-import { OptionalBlueprint } from '../util/OptionalBlueprint';
+import { useMosaicContext, useMosaicWindowContext } from '../contextTypes';
 import { DefaultToolbarButton, MosaicButtonProps } from './MosaicButton';
 
-export class ExpandButton extends React.PureComponent<MosaicButtonProps> {
-  static contextType = MosaicWindowContext;
-  context!: MosaicWindowContext;
+export function ExpandButton(props: MosaicButtonProps) {
+  const ctx = useMosaicContext();
+  const windowCtx = useMosaicWindowContext();
 
-  render() {
-    return (
-      <MosaicContext.Consumer>
-        {({ mosaicActions }) => (
-          <DefaultToolbarButton
-            title="Expand"
-            className={classNames(
-              'expand-button',
-              OptionalBlueprint.getIconClass(this.context.blueprintNamespace, 'MAXIMIZE'),
-            )}
-            onClick={this.createExpand(mosaicActions)}
-          />
-        )}
-      </MosaicContext.Consumer>
-    );
+  function handleClick() {
+    ctx.mosaicActions.expand(windowCtx.mosaicWindowActions.getPath());
+    props.onClick?.();
   }
 
-  private createExpand(mosaicActions: MosaicRootActions<any>) {
-    return () => {
-      mosaicActions.expand(this.context.mosaicWindowActions.getPath());
-
-      if (this.props.onClick) {
-        this.props.onClick();
-      }
-    };
-  }
+  return (
+    <DefaultToolbarButton
+      title="Expand"
+      className="expand-button"
+      onClick={handleClick}
+    />
+  );
 }

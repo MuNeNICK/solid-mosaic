@@ -1,8 +1,7 @@
 import classNames from 'classnames';
 import noop from 'lodash/noop';
-import React from 'react';
 
-import { MosaicContext } from './contextTypes';
+import { useMosaicContext } from './contextTypes';
 import { CreateNode, MosaicKey } from './types';
 import { OptionalBlueprint } from './util/OptionalBlueprint';
 
@@ -10,41 +9,39 @@ export interface MosaicZeroStateProps<T extends MosaicKey> {
   createNode?: CreateNode<T>;
 }
 
-export class MosaicZeroState<T extends MosaicKey> extends React.PureComponent<MosaicZeroStateProps<T>> {
-  static contextType = MosaicContext;
-  context!: MosaicContext<T>;
+export function MosaicZeroState<T extends MosaicKey>(props: MosaicZeroStateProps<T>) {
+  const ctx = useMosaicContext();
 
-  render() {
-    return (
-      <div
-        className={classNames(
-          'mosaic-zero-state',
-          OptionalBlueprint.getClasses(this.context.blueprintNamespace, 'NON_IDEAL_STATE'),
-        )}
-      >
-        <div className={OptionalBlueprint.getClasses(this.context.blueprintNamespace, 'NON_IDEAL_STATE_VISUAL')}>
-          <OptionalBlueprint.Icon className="default-zero-state-icon" size="large" icon="APPLICATIONS" />
-        </div>
-        <h4 className={OptionalBlueprint.getClasses(this.context.blueprintNamespace, 'HEADING')}>No Windows Present</h4>
-        <div>
-          {this.props.createNode && (
-            <button
-              className={classNames(
-                OptionalBlueprint.getClasses(this.context.blueprintNamespace, 'BUTTON'),
-                OptionalBlueprint.getIconClass(this.context.blueprintNamespace, 'ADD'),
-              )}
-              onClick={this.replace}
-            >
-              Add New Window
-            </button>
-          )}
-        </div>
-      </div>
-    );
+  function replace() {
+    Promise.resolve(props.createNode!())
+      .then((node) => ctx.mosaicActions.replaceWith([], node))
+      .catch(noop);
   }
 
-  private replace = () =>
-    Promise.resolve(this.props.createNode!())
-      .then((node) => this.context.mosaicActions.replaceWith([], node))
-      .catch(noop); // Swallow rejections (i.e. on user cancel)
+  return (
+    <div
+      class={classNames(
+        'mosaic-zero-state',
+        OptionalBlueprint.getClasses(ctx.blueprintNamespace, 'NON_IDEAL_STATE'),
+      )}
+    >
+      <div class={OptionalBlueprint.getClasses(ctx.blueprintNamespace, 'NON_IDEAL_STATE_VISUAL')}>
+        <OptionalBlueprint.Icon className="default-zero-state-icon" size="large" icon="APPLICATIONS" />
+      </div>
+      <h4 class={OptionalBlueprint.getClasses(ctx.blueprintNamespace, 'HEADING')}>No Windows Present</h4>
+      <div>
+        {props.createNode && (
+          <button
+            class={classNames(
+              OptionalBlueprint.getClasses(ctx.blueprintNamespace, 'BUTTON'),
+              OptionalBlueprint.getIconClass(ctx.blueprintNamespace, 'ADD'),
+            )}
+            onClick={replace}
+          >
+            Add New Window
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }

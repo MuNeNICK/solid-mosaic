@@ -7,10 +7,13 @@
   "exclude": [
     "demo",
     "docs",
+    "e2e",
     "lib",
     "node_modules",
     "test",
-    "webpack"
+    "webpack",
+    "vite.config.ts",
+    "playwright.config.ts"
   ],
   "extends": "./tsconfig.json"
 }

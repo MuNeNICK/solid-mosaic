@@ -1,8 +1,8 @@
 import { Spec } from 'immutability-helper';
+import { JSX } from 'solid-js';
 
 /**
  * Valid node types
- * @see React.Key
  */
 export type MosaicKey = string | number;
 
@@ -38,7 +38,7 @@ export interface MosaicUpdate<T extends MosaicKey> {
 }
 
 /**
- * Mosaic needs a way to resolve `MosaicKey` into react elements for display.
+ * Mosaic needs a way to resolve `MosaicKey` into elements for display.
  * This provides a way to render them.
  */
 export type TileRenderer<T extends MosaicKey> = (t: T, path: MosaicBranch[]) => JSX.Element;
@@ -49,8 +49,7 @@ export type TileRenderer<T extends MosaicKey> = (t: T, path: MosaicBranch[]) => 
 export type CreateNode<T extends MosaicKey> = (...args: any[]) => Promise<MosaicNode<T>> | MosaicNode<T>;
 
 /**
- * Used by `react-dnd`
- * @type {{WINDOW: string}}
+ * Used by drag and drop
  */
 export const MosaicDragType = {
   WINDOW: 'MosaicWindow',

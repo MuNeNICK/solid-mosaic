@@ -1,57 +1,33 @@
 import classNames from 'classnames';
 import values from 'lodash/values';
-import React from 'react';
-import { useDrop } from 'react-dnd';
+import { createSignal, createEffect, onCleanup, For } from 'solid-js';
 
 import { MosaicDropTargetPosition } from './internalTypes';
 import { MosaicDropTarget } from './MosaicDropTarget';
-import { MosaicDragType } from './types';
+import { isDragging } from './dnd';
 
-export const RootDropTargets = React.memo(() => {
-  const [{ isDragging }] = useDrop({
-    accept: MosaicDragType.WINDOW,
-    collect: (monitor) => ({
-      isDragging: monitor.getItem() !== null && monitor.getItemType() === MosaicDragType.WINDOW,
-    }),
-  });
-  const delayedIsDragging = useDelayedTrue(isDragging, 0);
-  return (
-    <div
-      className={classNames('drop-target-container', {
-        '-dragging': delayedIsDragging,
-      })}
-    >
-      {values<MosaicDropTargetPosition>(MosaicDropTargetPosition).map((position) => (
-        <MosaicDropTarget position={position} path={[]} key={position} />
-      ))}
-    </div>
-  );
-});
-RootDropTargets.displayName = 'RootDropTargets';
+export function RootDropTargets() {
+  const [delayedIsDragging, setDelayedIsDragging] = createSignal(false);
 
-function useDelayedTrue(currentValue: boolean, delay: number): boolean {
-  const delayedRef = React.useRef(currentValue);
-
-  const [, setCounter] = React.useState(0);
-  const setAndRender = (newValue: boolean) => {
-    delayedRef.current = newValue;
-    setCounter((count) => count + 1);
-  };
-
-  if (!currentValue) {
-    delayedRef.current = false;
-  }
-
-  React.useEffect(() => {
-    if (delayedRef.current === currentValue || !currentValue) {
+  createEffect(() => {
+    const dragging = isDragging();
+    if (!dragging) {
+      setDelayedIsDragging(false);
       return;
     }
+    const timer = window.setTimeout(() => setDelayedIsDragging(true), 0);
+    onCleanup(() => window.clearTimeout(timer));
+  });
 
-    const timer = window.setTimeout(() => setAndRender(true), delay);
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [currentValue]);
-
-  return delayedRef.current;
+  return (
+    <div
+      class={classNames('drop-target-container', {
+        '-dragging': delayedIsDragging(),
+      })}
+    >
+      <For each={values<MosaicDropTargetPosition>(MosaicDropTargetPosition)}>
+        {(position) => <MosaicDropTarget position={position} path={[]} />}
+      </For>
+    </div>
+  );
 }

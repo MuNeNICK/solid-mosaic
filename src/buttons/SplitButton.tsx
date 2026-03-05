@@ -1,36 +1,24 @@
-import classNames from 'classnames';
 import noop from 'lodash/noop';
-import React from 'react';
-
-import { MosaicWindowContext } from '../contextTypes';
-import { OptionalBlueprint } from '../util/OptionalBlueprint';
+import { useMosaicWindowContext } from '../contextTypes';
 import { DefaultToolbarButton, MosaicButtonProps } from './MosaicButton';
 
-export class SplitButton extends React.PureComponent<MosaicButtonProps> {
-  static contextType = MosaicWindowContext;
-  context!: MosaicWindowContext;
+export function SplitButton(props: MosaicButtonProps) {
+  const windowCtx = useMosaicWindowContext();
 
-  render() {
-    return (
-      <DefaultToolbarButton
-        title="Split Window"
-        className={classNames(
-          'split-button',
-          OptionalBlueprint.getIconClass(this.context.blueprintNamespace, 'ADD_COLUMN_RIGHT'),
-        )}
-        onClick={this.split}
-      />
-    );
-  }
-
-  private split = () => {
-    this.context.mosaicWindowActions
+  function handleClick() {
+    windowCtx.mosaicWindowActions
       .split()
       .then(() => {
-        if (this.props.onClick) {
-          this.props.onClick();
-        }
+        props.onClick?.();
       })
-      .catch(noop); // Swallow rejections (i.e. on user cancel)
-  };
+      .catch(noop);
+  }
+
+  return (
+    <DefaultToolbarButton
+      title="Split Window"
+      className="split-button"
+      onClick={handleClick}
+    />
+  );
 }

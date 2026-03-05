@@ -1,36 +1,24 @@
-import classNames from 'classnames';
 import noop from 'lodash/noop';
-import React from 'react';
-
-import { MosaicWindowContext } from '../contextTypes';
-import { OptionalBlueprint } from '../util/OptionalBlueprint';
+import { useMosaicWindowContext } from '../contextTypes';
 import { DefaultToolbarButton, MosaicButtonProps } from './MosaicButton';
 
-export class ReplaceButton extends React.PureComponent<MosaicButtonProps> {
-  static contextType = MosaicWindowContext;
-  context!: MosaicWindowContext;
+export function ReplaceButton(props: MosaicButtonProps) {
+  const windowCtx = useMosaicWindowContext();
 
-  render() {
-    return (
-      <DefaultToolbarButton
-        title="Replace Window"
-        className={classNames(
-          'replace-button',
-          OptionalBlueprint.getIconClass(this.context.blueprintNamespace, 'EXCHANGE'),
-        )}
-        onClick={this.replace}
-      />
-    );
-  }
-
-  private replace = () => {
-    this.context.mosaicWindowActions
+  function handleClick() {
+    windowCtx.mosaicWindowActions
       .replaceWithNew()
       .then(() => {
-        if (this.props.onClick) {
-          this.props.onClick();
-        }
+        props.onClick?.();
       })
-      .catch(noop); // Swallow rejections (i.e. on user cancel)
-  };
+      .catch(noop);
+  }
+
+  return (
+    <DefaultToolbarButton
+      title="Replace Window"
+      className="replace-button"
+      onClick={handleClick}
+    />
+  );
 }

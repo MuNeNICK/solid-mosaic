@@ -14,16 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export {
-  Mosaic,
-  MosaicProps,
-  MosaicUncontrolledProps,
-  MosaicControlledProps,
-  MosaicWithoutDragDropContext,
-} from './Mosaic';
-export {
+export { Mosaic, MosaicWithoutDragDropContext } from './Mosaic';
+export type { MosaicProps, MosaicUncontrolledProps, MosaicControlledProps } from './Mosaic';
+
+export { MosaicDragType } from './types';
+export type {
   MosaicNode,
-  MosaicDragType,
   MosaicDirection,
   MosaicBranch,
   CreateNode,
@@ -33,7 +29,15 @@ export {
   MosaicUpdateSpec,
   TileRenderer,
 } from './types';
-export { MosaicContext, MosaicRootActions, MosaicWindowActions, MosaicWindowContext } from './contextTypes';
+
+export { MosaicContext, MosaicWindowContext, useMosaicContext, useMosaicWindowContext } from './contextTypes';
+export type {
+  MosaicRootActions,
+  MosaicWindowActions,
+  MosaicContextT,
+  MosaicWindowContextT,
+} from './contextTypes';
+
 export {
   buildSpecFromUpdate,
   createDragToUpdates,
@@ -42,6 +46,7 @@ export {
   createRemoveUpdate,
   updateTree,
 } from './util/mosaicUpdates';
+
 export {
   createBalancedTreeFromLeaves,
   Corner,
@@ -53,9 +58,16 @@ export {
   getPathToCorner,
   isParent,
 } from './util/mosaicUtilities';
-export { MosaicWindow, MosaicWindowProps } from './MosaicWindow';
-export { createDefaultToolbarButton, DefaultToolbarButton, MosaicButtonProps } from './buttons/MosaicButton';
-export { MosaicZeroState, MosaicZeroStateProps } from './MosaicZeroState';
+
+export { MosaicWindow } from './MosaicWindow';
+export type { MosaicWindowProps } from './MosaicWindow';
+
+export { createDefaultToolbarButton, DefaultToolbarButton } from './buttons/MosaicButton';
+export type { MosaicButtonProps } from './buttons/MosaicButton';
+
+export { MosaicZeroState } from './MosaicZeroState';
+export type { MosaicZeroStateProps } from './MosaicZeroState';
+
 export { Separator } from './buttons/Separator';
 export { ExpandButton } from './buttons/ExpandButton';
 export { ReplaceButton } from './buttons/ReplaceButton';

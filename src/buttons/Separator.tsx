@@ -1,7 +1,3 @@
-import React from 'react';
-
-export class Separator extends React.PureComponent {
-  render() {
-    return <div className="separator" />;
-  }
+export function Separator() {
+  return <div class="separator" />;
 }

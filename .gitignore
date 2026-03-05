@@ -1,10 +1,14 @@
 node_modules/
 lib/
-/react-mosaic-component.css*
-.*.swp
-react-mosaic.tar.bz2
+solid-mosaic-component.css
+solid-mosaic-component.css.map
+playwright.config.d.ts
+playwright.config.js
+playwright.config.js.map
+*.swp
 npm-debug.log
-yarn-error.log
+demo/dist/
+test-results/
 
 **/.idea/*
 !**/.idea/*.iml

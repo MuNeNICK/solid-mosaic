@@ -1,0 +1,134 @@
+@ns: bp4;
+@import '../styles/mosaic';
+@import '../styles/mosaic-window';
+
+// Standalone blueprint-like theme (no Blueprint dependency)
+// Values taken from Blueprint's color palette
+
+@gray1: #5c7080;
+@gray2: #738694;
+@gray3: #8a9ba8;
+@gray4: #a7b6c2;
+@gray5: #bfccd6;
+@light-gray2: #d8e1e8;
+@light-gray3: #dbdfe3;
+@light-gray4: #e1e8ed;
+@light-gray5: #f5f8fa;
+@dark-gray2: #394b59;
+@dark-gray4: #30404d;
+@dark-gray5: #394b59;
+@blue2: #48aff0;
+@blue3: #2b95d6;
+@blue4: #137cbd;
+@blue5: #106ba3;
+@white: #fff;
+@black: #182026;
+@border-radius: 3px;
+@divider-black: rgba(16, 22, 26, 0.15);
+@elevation-shadow-0: 0 0 0 1px rgba(16, 22, 26, 0.15), 0 0 0 rgba(16, 22, 26, 0), 0 0 0 rgba(16, 22, 26, 0);
+@app-background-color: #f5f8fa;
+
+.mosaic.mosaic-blueprint-theme {
+  background: @gray4;
+
+  .mosaic-zero-state {
+    background: @light-gray3;
+    border-radius: @border-radius;
+    box-shadow: @elevation-shadow-0;
+
+    .default-zero-state-icon {
+      font-size: 120px;
+    }
+  }
+
+  .mosaic-split:hover {
+    background: none;
+    .mosaic-split-line {
+      box-shadow: 0 0 0 1px @blue4;
+    }
+  }
+
+  &.mosaic-drop-target,
+  .mosaic-drop-target {
+    .drop-target-container .drop-target {
+      background: fade(@blue5, 20%);
+      border: 2px solid @blue4;
+      transition: opacity 100ms;
+      border-radius: @border-radius;
+    }
+  }
+
+  .mosaic-window,
+  .mosaic-preview {
+    box-shadow: @elevation-shadow-0;
+    border-radius: @border-radius;
+
+    .mosaic-window-toolbar {
+      box-shadow: 0 1px 1px @divider-black;
+      border-top-right-radius: @border-radius;
+      border-top-left-radius: @border-radius;
+
+      &.draggable:hover {
+        .mosaic-window-title {
+          color: @black;
+        }
+        background: linear-gradient(to bottom, @white, @light-gray5);
+      }
+    }
+
+    .mosaic-window-title {
+      font-weight: 600;
+      color: @dark-gray5;
+    }
+
+    .mosaic-window-controls {
+      .separator {
+        border-left: 1px solid @light-gray2;
+      }
+      button {
+        &,
+        &:before {
+          color: @gray2;
+        }
+      }
+    }
+
+    .default-preview-icon {
+      font-size: 72px;
+    }
+
+    .mosaic-window-body {
+      border-top-width: 0;
+      background: @app-background-color;
+      border-bottom-right-radius: @border-radius;
+      border-bottom-left-radius: @border-radius;
+    }
+
+    .mosaic-window-additional-actions-bar {
+      transition: height 250ms;
+      box-shadow: 0 1px 1px @divider-black;
+    }
+
+    .mosaic-preview {
+      border: 1px solid @gray3;
+
+      h4 {
+        color: @dark-gray5;
+      }
+    }
+  }
+
+  .mosaic-default-control {
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: @gray2;
+
+    &.close-button:before { content: '✕'; }
+    &.split-button:before { content: '⊞'; }
+    &.replace-button:before { content: '⇄'; }
+    &.expand-button:before { content: '⤢'; }
+  }
+}

@@ -4,33 +4,30 @@ import dropRight from 'lodash/dropRight';
 import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 import values from 'lodash/values';
-import React, { useContext } from 'react';
-import {
-  ConnectDragPreview,
-  ConnectDragSource,
-  ConnectDropTarget,
-  DropTargetMonitor,
-  useDrag,
-  useDrop,
-} from 'react-dnd';
+import { createSignal, JSX, Show, For } from 'solid-js';
 
 import { DEFAULT_CONTROLS_WITHOUT_CREATION, DEFAULT_CONTROLS_WITH_CREATION } from './buttons/defaultToolbarControls';
 import { Separator } from './buttons/Separator';
-import { MosaicContext, MosaicWindowContext } from './contextTypes';
-import { MosaicDragItem, MosaicDropData, MosaicDropTargetPosition } from './internalTypes';
+import {
+  MosaicWindowContext,
+  MosaicWindowContextT,
+  useMosaicContext,
+} from './contextTypes';
+import { MosaicDropTargetPosition } from './internalTypes';
 import { MosaicDropTarget } from './MosaicDropTarget';
-import { CreateNode, MosaicBranch, MosaicDirection, MosaicDragType, MosaicKey } from './types';
+import { CreateNode, MosaicBranch, MosaicDirection, MosaicKey } from './types';
 import { createDragToUpdates } from './util/mosaicUpdates';
 import { getAndAssertNodeAtPathExists } from './util/mosaicUtilities';
 import { OptionalBlueprint } from './util/OptionalBlueprint';
+import { startDrag, endDrag, getDragItem } from './dnd';
 
 export interface MosaicWindowProps<T extends MosaicKey> {
   title: string;
   path: MosaicBranch[];
-  children?: React.ReactNode;
+  children?: JSX.Element;
   className?: string;
-  toolbarControls?: React.ReactNode;
-  additionalControls?: React.ReactNode;
+  toolbarControls?: JSX.Element;
+  additionalControls?: JSX.Element;
   additionalControlButtonText?: string;
   onAdditionalControlsToggle?: (toggle: boolean) => void;
   disableAdditionalControlsOverlay?: boolean;
@@ -42,177 +39,46 @@ export interface MosaicWindowProps<T extends MosaicKey> {
   onDragEnd?: (type: 'drop' | 'reset') => void;
 }
 
-export interface InternalDragSourceProps {
-  connectDragSource: ConnectDragSource;
-  connectDragPreview: ConnectDragPreview;
-}
+export function MosaicWindow<T extends MosaicKey = string>(props: MosaicWindowProps<T>) {
+  const ctx = useMosaicContext();
+  const [additionalControlsOpen, setAdditionalControlsOpen] = createSignal(false);
+  // Counter-based dragenter/dragleave tracking (handles child element transitions)
+  let dragEnterCount = 0;
+  const [isOver, setIsOver] = createSignal(false);
+  let rootElement: HTMLDivElement | undefined;
+  let previewElement: HTMLDivElement | undefined;
 
-export interface InternalDropTargetProps {
-  connectDropTarget: ConnectDropTarget;
-  isOver: boolean;
-  draggedMosaicId: string | undefined;
-}
+  const draggable = () => props.draggable ?? true;
+  const additionalControlButtonText = () => props.additionalControlButtonText ?? 'More';
 
-export type InternalMosaicWindowProps<T extends MosaicKey> = MosaicWindowProps<T> &
-  InternalDropTargetProps &
-  InternalDragSourceProps;
-
-export interface InternalMosaicWindowState {
-  additionalControlsOpen: boolean;
-}
-
-export class InternalMosaicWindow<T extends MosaicKey> extends React.Component<
-  InternalMosaicWindowProps<T>,
-  InternalMosaicWindowState
-> {
-  static defaultProps: Partial<InternalMosaicWindowProps<any>> = {
-    additionalControlButtonText: 'More',
-    draggable: true,
-    renderPreview: ({ title }) => (
-      <div className="mosaic-preview">
-        <div className="mosaic-window-toolbar">
-          <div className="mosaic-window-title">{title}</div>
+  function renderPreview(windowProps: MosaicWindowProps<T>): JSX.Element {
+    return (
+      <div class="mosaic-preview">
+        <div class="mosaic-window-toolbar">
+          <div class="mosaic-window-title">{windowProps.title}</div>
         </div>
-        <div className="mosaic-window-body">
-          <h4>{title}</h4>
+        <div class="mosaic-window-body">
+          <h4>{windowProps.title}</h4>
           <OptionalBlueprint.Icon className="default-preview-icon" size="large" icon="APPLICATION" />
         </div>
       </div>
-    ),
-    renderToolbar: null,
-  };
-  static contextType = MosaicContext;
-  context!: MosaicContext<T>;
-
-  state: InternalMosaicWindowState = {
-    additionalControlsOpen: false,
-  };
-
-  private rootElement: HTMLElement | null = null;
-
-  render() {
-    const {
-      className,
-      isOver,
-      renderPreview,
-      additionalControls,
-      connectDropTarget,
-      connectDragPreview,
-      draggedMosaicId,
-      disableAdditionalControlsOverlay,
-    } = this.props;
-
-    return (
-      <MosaicWindowContext.Provider value={this.childContext}>
-        {connectDropTarget(
-          <div
-            className={classNames('mosaic-window mosaic-drop-target', className, {
-              'drop-target-hover': isOver && draggedMosaicId === this.context.mosaicId,
-              'additional-controls-open': this.state.additionalControlsOpen,
-            })}
-            ref={(element) => (this.rootElement = element)}
-          >
-            {this.renderToolbar()}
-            <div className="mosaic-window-body">{this.props.children}</div>
-            {!disableAdditionalControlsOverlay && (
-              <div
-                className="mosaic-window-body-overlay"
-                onClick={() => {
-                  this.setAdditionalControlsOpen(false);
-                }}
-              />
-            )}
-            <div className="mosaic-window-additional-actions-bar">{additionalControls}</div>
-            {connectDragPreview(renderPreview!(this.props))}
-            <div className="drop-target-container">
-              {values<MosaicDropTargetPosition>(MosaicDropTargetPosition).map(this.renderDropTarget)}
-            </div>
-          </div>,
-        )}
-      </MosaicWindowContext.Provider>
     );
   }
 
-  private getToolbarControls() {
-    const { toolbarControls, createNode } = this.props;
-    if (toolbarControls) {
-      return toolbarControls;
-    } else if (createNode) {
-      return DEFAULT_CONTROLS_WITH_CREATION;
-    } else {
-      return DEFAULT_CONTROLS_WITHOUT_CREATION;
-    }
-  }
-
-  private renderToolbar() {
-    const { title, draggable, additionalControls, additionalControlButtonText, path, renderToolbar } = this.props;
-    const { additionalControlsOpen } = this.state;
-    const toolbarControls = this.getToolbarControls();
-    const draggableAndNotRoot = draggable && path.length > 0;
-    const connectIfDraggable = draggableAndNotRoot ? this.props.connectDragSource : (el: React.ReactElement) => el;
-
-    if (renderToolbar) {
-      const connectedToolbar = connectIfDraggable(renderToolbar(this.props, draggable)) as React.ReactElement<any>;
-      return (
-        <div className={classNames('mosaic-window-toolbar', { draggable: draggableAndNotRoot })}>
-          {connectedToolbar}
-        </div>
-      );
-    }
-
-    const titleDiv = connectIfDraggable(
-      <div title={title} className="mosaic-window-title">
-        {title}
-      </div>,
-    )!;
-
-    const hasAdditionalControls = !isEmpty(additionalControls);
-
-    return (
-      <div className={classNames('mosaic-window-toolbar', { draggable: draggableAndNotRoot })}>
-        {titleDiv}
-        <div className={classNames('mosaic-window-controls', OptionalBlueprint.getClasses('BUTTON_GROUP'))}>
-          {hasAdditionalControls && (
-            <button
-              onClick={() => this.setAdditionalControlsOpen(!additionalControlsOpen)}
-              className={classNames(
-                OptionalBlueprint.getClasses(this.context.blueprintNamespace, 'BUTTON', 'MINIMAL'),
-                OptionalBlueprint.getIconClass(this.context.blueprintNamespace, 'MORE'),
-                {
-                  [OptionalBlueprint.getClasses(this.context.blueprintNamespace, 'ACTIVE')]: additionalControlsOpen,
-                },
-              )}
-            >
-              <span className="control-text">{additionalControlButtonText!}</span>
-            </button>
-          )}
-          {hasAdditionalControls && <Separator />}
-          {toolbarControls}
-        </div>
-      </div>
-    );
-  }
-
-  private renderDropTarget = (position: MosaicDropTargetPosition) => {
-    const { path } = this.props;
-
-    return <MosaicDropTarget position={position} path={path} key={position} />;
-  };
-
-  private checkCreateNode() {
-    if (this.props.createNode == null) {
+  function checkCreateNode() {
+    if (props.createNode == null) {
       throw new Error('Operation invalid unless `createNode` is defined');
     }
   }
 
-  private split = (...args: any[]) => {
-    this.checkCreateNode();
-    const { createNode, path } = this.props;
-    const { mosaicActions } = this.context;
+  function split(...args: any[]) {
+    checkCreateNode();
+    const { createNode, path } = props;
+    const { mosaicActions } = ctx;
     const root = mosaicActions.getRoot();
 
     const direction: MosaicDirection =
-      this.rootElement!.offsetWidth > this.rootElement!.offsetHeight ? 'row' : 'column';
+      rootElement!.offsetWidth > rootElement!.offsetHeight ? 'row' : 'column';
 
     return Promise.resolve(createNode!(...args)).then((second) =>
       mosaicActions.replaceWith(path, {
@@ -221,111 +87,203 @@ export class InternalMosaicWindow<T extends MosaicKey> extends React.Component<
         first: getAndAssertNodeAtPathExists(root, path),
       }),
     );
-  };
+  }
 
-  private swap = (...args: any[]) => {
-    this.checkCreateNode();
-    const { mosaicActions } = this.context;
-    const { createNode, path } = this.props;
+  function swap(...args: any[]) {
+    checkCreateNode();
+    const { mosaicActions } = ctx;
+    const { createNode, path } = props;
     return Promise.resolve(createNode!(...args)).then((node) => mosaicActions.replaceWith(path, node));
-  };
+  }
 
-  private setAdditionalControlsOpen = (additionalControlsOpenOption: boolean | 'toggle') => {
-    const additionalControlsOpen =
-      additionalControlsOpenOption === 'toggle' ? !this.state.additionalControlsOpen : additionalControlsOpenOption;
-    this.setState({ additionalControlsOpen });
-    this.props.onAdditionalControlsToggle?.(additionalControlsOpen);
-  };
+  function handleSetAdditionalControlsOpen(openOption: boolean | 'toggle') {
+    const open = openOption === 'toggle' ? !additionalControlsOpen() : openOption;
+    setAdditionalControlsOpen(open);
+    props.onAdditionalControlsToggle?.(open);
+  }
 
-  private getPath = () => this.props.path;
-
-  private connectDragSource = (connectedElements: React.ReactElement<any>) => {
-    const { connectDragSource } = this.props;
-    return connectDragSource(connectedElements);
-  };
-
-  private readonly childContext: MosaicWindowContext = {
-    blueprintNamespace: this.context.blueprintNamespace,
+  const windowActions: MosaicWindowContextT = {
+    blueprintNamespace: ctx.blueprintNamespace,
     mosaicWindowActions: {
-      split: this.split,
-      replaceWithNew: this.swap,
-      setAdditionalControlsOpen: this.setAdditionalControlsOpen,
-      getPath: this.getPath,
-      connectDragSource: this.connectDragSource,
+      split,
+      replaceWithNew: swap,
+      setAdditionalControlsOpen: handleSetAdditionalControlsOpen,
+      getPath: () => props.path,
     },
   };
-}
 
-function ConnectedInternalMosaicWindow<T extends MosaicKey = string>(props: InternalMosaicWindowProps<T>) {
-  const { mosaicActions, mosaicId } = useContext(MosaicContext);
+  function getToolbarControls(): JSX.Element {
+    if (props.toolbarControls) {
+      return props.toolbarControls;
+    } else if (props.createNode) {
+      return <DEFAULT_CONTROLS_WITH_CREATION />;
+    } else {
+      return <DEFAULT_CONTROLS_WITHOUT_CREATION />;
+    }
+  }
 
-  const [, connectDragSource, connectDragPreview] = useDrag<MosaicDragItem>({
-    type: MosaicDragType.WINDOW,
-    item: (_monitor): MosaicDragItem | null => {
-      if (props.onDragStart) {
-        props.onDragStart();
+  // ─── Native HTML5 DnD handlers (matching react-dnd behavior) ───
+
+  function handleDragStart(e: DragEvent) {
+    if (!draggable() || props.path.length === 0) {
+      e.preventDefault();
+      return;
+    }
+    props.onDragStart?.();
+    // The defer is necessary as the element must be present on start for HTML DnD to not cry
+    const hideTimer = defer(() => ctx.mosaicActions.hide(props.path));
+    startDrag({ mosaicId: ctx.mosaicId, hideTimer });
+
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', '');
+      // Use the preview element as the drag ghost (like react-dnd connectDragPreview)
+      if (previewElement) {
+        e.dataTransfer.setDragImage(previewElement, 0, 0);
       }
-      // TODO: Actually just delete instead of hiding
-      // The defer is necessary as the element must be present on start for HTML DnD to not cry
-      const hideTimer = defer(() => mosaicActions.hide(props.path));
-      return {
-        mosaicId,
-        hideTimer,
-      };
-    },
-    end: (item, monitor) => {
-      const { hideTimer } = item;
-      // If the hide call hasn't happened yet, cancel it
-      window.clearTimeout(hideTimer);
+    }
+  }
 
-      const ownPath = props.path;
-      const dropResult: MosaicDropData = (monitor.getDropResult() || {}) as MosaicDropData;
-      const { position, path: destinationPath } = dropResult;
-      if (position != null && destinationPath != null && !isEqual(destinationPath, ownPath)) {
-        mosaicActions.updateTree(createDragToUpdates(mosaicActions.getRoot()!, ownPath, destinationPath, position));
-        if (props.onDragEnd) {
-          props.onDragEnd('drop');
-        }
-      } else {
-        // TODO: restore node from captured state
-        mosaicActions.updateTree([
-          {
-            path: dropRight(ownPath),
-            spec: {
-              splitPercentage: {
-                $set: undefined,
-              },
+  function handleDragEnd() {
+    const item = getDragItem();
+    if (!item) return;
+
+    window.clearTimeout(item.hideTimer);
+    const result = endDrag();
+    const ownPath = props.path;
+
+    if (result && result.position != null && result.path != null && !isEqual(result.path, ownPath)) {
+      ctx.mosaicActions.updateTree(
+        createDragToUpdates(ctx.mosaicActions.getRoot()!, ownPath, result.path, result.position),
+      );
+      props.onDragEnd?.('drop');
+    } else {
+      ctx.mosaicActions.updateTree([
+        {
+          path: dropRight(ownPath),
+          spec: {
+            splitPercentage: {
+              $set: undefined,
             },
           },
-        ]);
-        if (props.onDragEnd) {
-          props.onDragEnd('reset');
-        }
-      }
-    },
-  });
-
-  const [{ isOver, draggedMosaicId }, connectDropTarget] = useDrop({
-    accept: MosaicDragType.WINDOW,
-    collect: (monitor: DropTargetMonitor<MosaicDragItem>) => ({
-      isOver: monitor.isOver(),
-      draggedMosaicId: monitor.getItem()?.mosaicId,
-    }),
-  });
-  return (
-    <InternalMosaicWindow
-      {...props}
-      connectDragPreview={connectDragPreview}
-      connectDragSource={connectDragSource}
-      connectDropTarget={connectDropTarget}
-      isOver={isOver}
-      draggedMosaicId={draggedMosaicId}
-    />
-  );
-}
-
-export class MosaicWindow<T extends MosaicKey = string> extends React.PureComponent<MosaicWindowProps<T>> {
-  render() {
-    return <ConnectedInternalMosaicWindow<T> {...(this.props as InternalMosaicWindowProps<T>)} />;
+        },
+      ]);
+      props.onDragEnd?.('reset');
+    }
   }
+
+  // ─── Window-level drop target (shows drop zones on hover, matching react-dnd useDrop) ───
+
+  function handleWindowDragOver(e: DragEvent) {
+    e.preventDefault();
+  }
+
+  function handleWindowDragEnter() {
+    dragEnterCount++;
+    if (dragEnterCount === 1) {
+      setIsOver(true);
+    }
+  }
+
+  function handleWindowDragLeave() {
+    dragEnterCount--;
+    if (dragEnterCount === 0) {
+      setIsOver(false);
+    }
+  }
+
+  function handleWindowDrop(e: DragEvent) {
+    e.preventDefault();
+    dragEnterCount = 0;
+    setIsOver(false);
+  }
+
+  function renderToolbar() {
+    const { title, additionalControls, path, renderToolbar: customRenderToolbar } = props;
+    const toolbarControls = getToolbarControls();
+    const draggableAndNotRoot = draggable() && path.length > 0;
+
+    if (customRenderToolbar) {
+      const toolbar = customRenderToolbar(props, draggable());
+      return (
+        <div
+          class={classNames('mosaic-window-toolbar', { draggable: draggableAndNotRoot })}
+          draggable={draggableAndNotRoot}
+          onDragStart={handleDragStart}
+        >
+          {toolbar}
+        </div>
+      );
+    }
+
+    const hasAdditionalControls = !isEmpty(additionalControls);
+
+    return (
+      <div class={classNames('mosaic-window-toolbar', { draggable: draggableAndNotRoot })}>
+        <div
+          title={title}
+          class="mosaic-window-title"
+          draggable={draggableAndNotRoot}
+          onDragStart={handleDragStart}
+        >
+          {title}
+        </div>
+        <div class={classNames('mosaic-window-controls', OptionalBlueprint.getClasses(ctx.blueprintNamespace, 'BUTTON_GROUP'))}>
+          <Show when={hasAdditionalControls}>
+            <button
+              onClick={() => handleSetAdditionalControlsOpen(!additionalControlsOpen())}
+              class={classNames(
+                OptionalBlueprint.getClasses(ctx.blueprintNamespace, 'BUTTON', 'MINIMAL'),
+                OptionalBlueprint.getIconClass(ctx.blueprintNamespace, 'MORE'),
+                {
+                  [OptionalBlueprint.getClasses(ctx.blueprintNamespace, 'ACTIVE')]: additionalControlsOpen(),
+                },
+              )}
+            >
+              <span class="control-text">{additionalControlButtonText()}</span>
+            </button>
+            <Separator />
+          </Show>
+          {toolbarControls}
+        </div>
+      </div>
+    );
+  }
+
+  const doRenderPreview = props.renderPreview ?? renderPreview;
+
+  return (
+    <MosaicWindowContext.Provider value={windowActions}>
+      <div
+        class={classNames('mosaic-window mosaic-drop-target', props.className, {
+          'drop-target-hover': isOver() && getDragItem()?.mosaicId === ctx.mosaicId,
+          'additional-controls-open': additionalControlsOpen(),
+        })}
+        ref={rootElement}
+        onDragOver={handleWindowDragOver}
+        onDragEnter={handleWindowDragEnter}
+        onDragLeave={handleWindowDragLeave}
+        onDrop={handleWindowDrop}
+        onDragEnd={handleDragEnd}
+      >
+        {renderToolbar()}
+        <div class="mosaic-window-body">{props.children}</div>
+        <Show when={!props.disableAdditionalControlsOverlay}>
+          <div
+            class="mosaic-window-body-overlay"
+            onClick={() => handleSetAdditionalControlsOpen(false)}
+          />
+        </Show>
+        <div class="mosaic-window-additional-actions-bar">{props.additionalControls}</div>
+        <div ref={previewElement}>
+          {doRenderPreview(props)}
+        </div>
+        <div class="drop-target-container">
+          <For each={values<MosaicDropTargetPosition>(MosaicDropTargetPosition)}>
+            {(position) => <MosaicDropTarget position={position} path={props.path} />}
+          </For>
+        </div>
+      </div>
+    </MosaicWindowContext.Provider>
+  );
 }

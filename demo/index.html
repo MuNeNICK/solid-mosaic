@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>solid-mosaic demo</title>
+  <style>
+    html, body, #app {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+    }
+    .solid-mosaic-example-app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .example-navbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: #333;
+      color: #fff;
+    }
+    .navbar-heading {
+      font-weight: bold;
+      font-size: 18px;
+      margin-right: 16px;
+    }
+    .example-navbar button {
+      padding: 4px 12px;
+      cursor: pointer;
+    }
+    .example-window {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+    .mosaic {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="./index.tsx"></script>
+</body>
+</html>

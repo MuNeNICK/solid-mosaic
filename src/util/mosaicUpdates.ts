@@ -19,7 +19,7 @@ import {
 import { getAndAssertNodeAtPathExists, getOtherBranch } from './mosaicUtilities';
 
 // https://github.com/Microsoft/TypeScript/issues/9944
-export { MosaicParent };
+export type { MosaicParent };
 
 /**
  * Used to prepare `update` for `immutability-helper`

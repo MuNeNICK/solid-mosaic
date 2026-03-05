@@ -1,37 +1,50 @@
 import classNames from 'classnames';
-import React, { useContext } from 'react';
-import { useDrop } from 'react-dnd';
-
-import { MosaicContext } from './contextTypes';
-import { MosaicDragItem, MosaicDropData, MosaicDropTargetPosition } from './internalTypes';
-import { MosaicDragType, MosaicPath } from './types';
+import { createSignal } from 'solid-js';
+import { useMosaicContext } from './contextTypes';
+import { MosaicDropTargetPosition } from './internalTypes';
+import { MosaicPath } from './types';
+import { getDragItem, drop as dndDrop } from './dnd';
 
 export interface MosaicDropTargetProps {
   position: MosaicDropTargetPosition;
   path: MosaicPath;
 }
 
-export function MosaicDropTarget({ path, position }: MosaicDropTargetProps) {
-  const { mosaicId } = useContext(MosaicContext);
-  const [{ isOver, draggedMosaicId }, connectDropTarget] = useDrop({
-    accept: MosaicDragType.WINDOW,
-    drop: (item: MosaicDragItem | undefined, _monitor): MosaicDropData => {
-      if (mosaicId === item?.mosaicId) {
-        return { path, position };
-      } else {
-        return {};
-      }
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-      draggedMosaicId: (monitor.getItem() || {}).mosaicId,
-    }),
-  });
+export function MosaicDropTarget(props: MosaicDropTargetProps) {
+  const ctx = useMosaicContext();
+  const [isOver, setIsOver] = createSignal(false);
+
+  function onDragEnter(e: DragEvent) {
+    e.preventDefault();
+    setIsOver(true);
+  }
+
+  function onDragOver(e: DragEvent) {
+    e.preventDefault();
+  }
+
+  function onDragLeave() {
+    setIsOver(false);
+  }
+
+  function onDrop(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOver(false);
+    const item = getDragItem();
+    if (item && ctx.mosaicId === item.mosaicId) {
+      dndDrop({ path: props.path, position: props.position });
+    }
+  }
+
   return (
     <div
-      ref={connectDropTarget}
-      className={classNames('drop-target', position, {
-        'drop-target-hover': isOver && draggedMosaicId === mosaicId,
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      class={classNames('drop-target', props.position, {
+        'drop-target-hover': isOver() && getDragItem()?.mosaicId === ctx.mosaicId,
       })}
     />
   );
