@@ -1,16 +1,25 @@
 {
   "name": "solid-mosaic-component",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A SolidJS Tiling Window Manager",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/MuNeNICK/solid-mosaic"
   },
-  "main": "lib/index.js",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
   "style": "solid-mosaic-component.css",
-  "type": "commonjs",
-  "typings": "lib/index.d.ts",
+  "type": "module",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./solid-mosaic-component.css": "./solid-mosaic-component.css"
+  },
   "keywords": [
     "ui",
     "solid",
@@ -26,8 +35,9 @@
   "scripts": {
     "build": "npm-run-all clean -lp build:**",
     "build:ts": "tsc -p tsconfig-build.json",
+    "build:vite": "vite build --config vite.lib.config.ts",
     "build:less": "lessc --autoprefix=defaults styles/index.less solid-mosaic-component.css",
-    "clean": "rm -rf lib/",
+    "clean": "rm -rf lib/ dist/",
     "prettier:run": "prettier 'styles/*.less' '*.md' '{,.}*.yml'",
     "test": "npm-run-all build -lp test:**",
     "test:unit": "vitest run",
